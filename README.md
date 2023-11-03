@@ -7,9 +7,12 @@ I just checked in the first snaphot.
 
 Requirement: ffmpeg in the same folder as the jar or available via path variable.
 
-usage: otrcut-<version>.jar --infile=<file> --outdir=<directory> [--exact=<y/n>]
+usage: otrcut-\<version\>.jar --infile=\<file\> --outdir=\<directory\> [--exact=\<y/n\>]
+
  -e,--exact <arg>    Frame Exact Cutting
+ 
  -i,--infile <arg>   Input File Name
+ 
  -o,--outdir <arg>   Output Directory
 
 

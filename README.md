@@ -5,11 +5,17 @@ I started to write a wrapper for ffmpeg to cut recordings consumed at https://ww
 I just checked in the first snaphot. 
 
 
-Requirement: ffmpeg in the same folder as the jar or available via path variable.
+Requirement: 
 
-usage: otrcut-\<version\>.jar --infile=\<file\> --outdir=\<directory\> [--exact=\<y/n\>]
+ffmpeg in the same folder as the jar or available via path variable.
+if option for downloading the cutlist is not given, the already existing cutlist has to be in the same directory as the input movie file.
 
- -e,--exact <arg>    Frame Exact Cutting
+
+usage: usage: otrcut-\<version\>.jar [options]
+
+ -e,--exact          Frame Exact Cutting (optional)
+ 
+ -g,--getonline      Get Cutlist Online (optional)
  
  -i,--infile <arg>   Input File Name
  
@@ -18,6 +24,5 @@ usage: otrcut-\<version\>.jar --infile=\<file\> --outdir=\<directory\> [--exact=
 
 Planned:
 
-- download cutlist automatically
 - decode OTRKEY file automatically (Windows, eventually Linux)
 - GUI

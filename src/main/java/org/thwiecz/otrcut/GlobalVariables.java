@@ -6,6 +6,7 @@ public class GlobalVariables {
 
     private String cutListFile;
     private boolean exact;
+    private boolean cutlistOnline;
     private String movieFile;
     private String outputDir;
     private String snippetList;
@@ -21,19 +22,17 @@ public class GlobalVariables {
     public boolean getExact () {
         return exact;
     }
-    public void setExact (String value) {
-        switch (value) {
-            case "y":
-                exact = false;
-                break;
-            case "n":
-                exact = false;
-                break;
-            default:
-                System.out.println("Invalid value for Output Directory");
-                System.exit(1);
-                break;
-        }
+
+    public void setExact () {
+        exact = true;
+    }
+
+    public boolean getCutlistOnline() {
+        return cutlistOnline;
+    }
+
+    public void setCutlistOnline () {
+        cutlistOnline = true;
     }
 
     public String getMovieFile () {

@@ -7,6 +7,36 @@ public class CommandLineParsing {
     public boolean run(String[] args, GlobalVariables globalVariables) {
 
         CommandLine commandLine;
+        Options options = getOptions();
+        CommandLineParser parser = new DefaultParser();
+
+        try {
+            commandLine = parser.parse(options, args);
+
+            if (commandLine.hasOption(options.getOption("i"))) {
+                globalVariables.setMovieFile(commandLine.getOptionValue(options.getOption("i")));
+                globalVariables.setCutListFile(commandLine.getOptionValue(options.getOption("i")) + ".cutlist");
+            }
+            if (commandLine.hasOption(options.getOption("o"))) {
+                globalVariables.setOutputDir(commandLine.getOptionValue(options.getOption("o")));
+            }
+            if (commandLine.hasOption(options.getOption("g"))) {
+                globalVariables.setCutlistOnline();
+            }
+            if (commandLine.hasOption(options.getOption("e"))) {
+                globalVariables.setExact();
+            }
+            globalVariables.setSnippetList();
+            return true;
+
+        } catch (Exception e) {
+            System.out.println(e + "\n");
+            new HelpFormatter().printHelp("otrcut-<version>.jar [options]", options);
+            return false;
+        }
+    }
+
+    private Options getOptions() {
 
         Option inputFile = Option.builder("i")
                 .required(true)
@@ -20,42 +50,26 @@ public class CommandLineParsing {
                 .desc("Output Directory")
                 .longOpt("outdir")
                 .build();
+        Option getListOnline = Option.builder("g")
+                .required(false)
+                .hasArg(false)
+                .desc("Get Cutlist Online (optional)")
+                .longOpt("getonline")
+                .build();
         Option exactCutting = Option.builder("e")
                 .required(false)
-                .hasArg(true)
-                .desc("Frame Exact Cutting")
+                .hasArg(false)
+                .desc("Frame Exact Cutting (optional)")
                 .longOpt("exact")
                 .build();
         Options options = new Options();
-        CommandLineParser parser = new DefaultParser();
 
         options.addOption(inputFile);
         options.addOption(outputDirectory);
+        options.addOption(getListOnline);
         options.addOption(exactCutting);
 
-        try {
-            commandLine = parser.parse(options, args);
-
-            if (commandLine.hasOption(inputFile)) {
-                globalVariables.setMovieFile(commandLine.getOptionValue(inputFile));
-                globalVariables.setCutListFile(commandLine.getOptionValue(inputFile) + ".cutlist");
-            }
-            if (commandLine.hasOption(inputFile)) {
-                globalVariables.setOutputDir(commandLine.getOptionValue(outputDirectory));
-            }
-            if (commandLine.hasOption(exactCutting)) {
-                globalVariables.setExact(commandLine.getOptionValue(exactCutting).toLowerCase());
-            } else {
-                globalVariables.setExact("y");
-            }
-            globalVariables.setSnippetList();
-            return true;
-
-        } catch (Exception e) {
-            System.out.println(e + "\n\n");
-            new HelpFormatter().printHelp("otrcut.jar --infile=<file> --outdir=<directory> [--exact=<y/n>]", options);
-            return false;
-        }
+        return options;
     }
 
 }

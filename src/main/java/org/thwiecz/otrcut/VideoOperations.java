@@ -68,7 +68,7 @@ public class VideoOperations {
             throw new RuntimeException("Could not parse duration.");
         String[] sHoursMinutesSeconds = sDuration.split(":");
         System.out.println("Total duration: " + sHoursMinutesSeconds[0] + ":" + sHoursMinutesSeconds[1] + ":" + sHoursMinutesSeconds[2]);
-        // convert the total duriation string to seconds for calculations
+        // convert the total duration string to seconds for calculations
         dTotalSecs = Integer.parseInt(sHoursMinutesSeconds[0]) * 3600
                 + Integer.parseInt(sHoursMinutesSeconds[1]) *   60
                 + Double.parseDouble(sHoursMinutesSeconds[2]);
@@ -97,7 +97,7 @@ public class VideoOperations {
 
         // method for extracting the video snippets out of the input video
         String sLine;
-        String sCommand = "ffmpeg -progress -hide_banner -y";
+        String sCommand = "ffmpeg -hide_banner -y";
 
         try {
             String sOutputFile = globalVariables.getOutputDir() + FilenameUtils.getName(globalVariables.getMovieFile())
@@ -106,6 +106,7 @@ public class VideoOperations {
 
             if (globalVariables.getExact()) {
                 // exact with encoding
+                System.out.println("Cutting exact with encoding");
                 sCommand = sCommand +
                         " -i " + globalVariables.getMovieFile() +
                         " -ss " + start +
@@ -113,6 +114,7 @@ public class VideoOperations {
                         " -c:v libx264 -crf 30 ";
             } else {
                 // input seeking
+                System.out.println("Doing quick-cut by input seeking");
                 sCommand = sCommand +
                         " -ss " + start +
                         " -i " + globalVariables.getMovieFile() +
@@ -144,7 +146,7 @@ public class VideoOperations {
                     + FilenameUtils.getName(globalVariables.getMovieFile())
                     .replaceAll("_[0-9][0-9].[0-9][0-9].[0-9][0-9].*HD","");
             System.out.println("Writing final file " + sOutputFile);
-            String sCommand = "ffmpeg -progress -hide_banner -loglevel error -y -f concat -safe 0" +
+            String sCommand = "ffmpeg -hide_banner -loglevel error -y -f concat -safe 0" +
                     " -i " + globalVariables.getSnippetList() +
                     " -c copy " + sOutputFile;
             Process process = Runtime.getRuntime().exec(sCommand);

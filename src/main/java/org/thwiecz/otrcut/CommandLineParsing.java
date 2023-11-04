@@ -31,7 +31,7 @@ public class CommandLineParsing {
 
         } catch (Exception e) {
             System.out.println(e + "\n");
-            new HelpFormatter().printHelp("otrcut.jar [options]", options);
+            new HelpFormatter().printHelp("otrcut-<version>.jar [options]", options);
             return false;
         }
     }

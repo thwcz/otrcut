@@ -1,0 +1,8 @@
+org\thwiecz\otrcut\FileOperations.class
+org\thwiecz\otrcut\VideoOperations.class
+org\thwiecz\otrcut\Main.class
+org\thwiecz\otrcut\GlobalVariables.class
+org\thwiecz\otrcut\CutList.class
+org\thwiecz\otrcut\CommandLineParsing.class
+org\thwiecz\otrcut\Helper.class
+org\thwiecz\otrcut\OnlineCutlistOperations.class

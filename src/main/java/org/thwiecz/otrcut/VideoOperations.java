@@ -3,6 +3,7 @@ package org.thwiecz.otrcut;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
@@ -16,23 +17,42 @@ public class VideoOperations {
         // Parent cutting method
         // calls the method for cutting out the snippets, listed in the cutlist
 
+        getKeyFrames(globalVariables);
+
         File snippetListFile = new File(globalVariables.getSnippetList());
         if (snippetListFile.exists()) {
             snippetListFile.delete();
         }
 
         Map<String, Map<String, String>> sortedCutListFileContents = new TreeMap<>(myCutlist.getCutlistItems());
-
         for (Map.Entry<String, Map<String, String>> cut: sortedCutListFileContents.entrySet()) {
             // we are only interested in the "Cut" entries of the Map
             if (cut.getKey().contains("Cut")) {
 
                 if (Double.parseDouble(cut.getValue().get("Duration")) != 0.0) {
+
                     double dStart = Double.parseDouble(cut.getValue().get("Start"));
+                    double dEnd = Double.parseDouble(cut.getValue().get("Start")) + Double.parseDouble(cut.getValue().get("Duration"));
+                    double dStartNextKeyFrame = globalVariables.getNextKeyFrame(dStart);
+                    double dEndPreviousKeyFrame = globalVariables.getPreviousKeyFrame(dEnd);
                     Helper secondsToTime = new Helper();
-                    String sStartHms = secondsToTime.convertSecondsToTime((int) Double.parseDouble(cut.getValue().get("Start")));
-                    String sDurationHms = secondsToTime.convertSecondsToTime((int) Double.parseDouble(cut.getValue().get("Duration")));
-                    extractSnippets(globalVariables, cut.getKey(), sStartHms, sDurationHms);
+                    String sStartHms;
+                    String sDurationHms;
+
+                    // Snippet Start: Encode, from: Start, to : until next key frame after Start
+                    sStartHms = secondsToTime.convertSecondsToTime(Double.parseDouble(cut.getValue().get("Start")));
+                    sDurationHms = secondsToTime.convertSecondsToTime(dStartNextKeyFrame - dStart);
+                    extractSnippets(globalVariables, cut.getKey() + "s", sStartHms, sDurationHms, Double.parseDouble(cut.getValue().get("Start")), (dStartNextKeyFrame - dStart));
+
+                    // Main Snippet: Copy, from: next key frame after Start, to : key frame previous to End
+                    sStartHms = secondsToTime.convertSecondsToTime(dStartNextKeyFrame);
+                    sDurationHms = secondsToTime.convertSecondsToTime(dEndPreviousKeyFrame - dStartNextKeyFrame);
+                    extractSnippets(globalVariables, cut.getKey() + "m", sStartHms, sDurationHms, dStartNextKeyFrame, (dStartNextKeyFrame + dEndPreviousKeyFrame));
+
+                    // Snippet End: Encode, from: key frame previous to End, to : End
+                    sStartHms = secondsToTime.convertSecondsToTime(dEndPreviousKeyFrame);
+                    sDurationHms = secondsToTime.convertSecondsToTime(dEnd - dEndPreviousKeyFrame);
+                    extractSnippets(globalVariables, cut.getKey() + "e", sStartHms, sDurationHms, dEndPreviousKeyFrame, (dEnd - dEndPreviousKeyFrame));
                 }
             }
         }
@@ -55,23 +75,13 @@ public class VideoOperations {
 
     }
 
-    private void encodingWatcher(Process process) {
+    private void encodingWatcher(Process process, double dStartSecs, double dTotalSecs) {
 
         // watches the encoding process and provides status output.
 
         Scanner sc = new Scanner(process.getErrorStream());
 
-        // Find duration
-        Pattern durPattern = Pattern.compile("(?<=Duration: )[^,]*");
-        String sDuration = sc.findWithinHorizon(durPattern, 0);
-        if (sDuration == null)
-            throw new RuntimeException("Could not parse duration.");
-        String[] sHoursMinutesSeconds = sDuration.split(":");
-        System.out.println("Total duration: " + sHoursMinutesSeconds[0] + ":" + sHoursMinutesSeconds[1] + ":" + sHoursMinutesSeconds[2]);
-        // convert the total duration string to seconds for calculations
-        dTotalSecs = Integer.parseInt(sHoursMinutesSeconds[0]) * 3600
-                + Integer.parseInt(sHoursMinutesSeconds[1]) *   60
-                + Double.parseDouble(sHoursMinutesSeconds[2]);
+        System.out.println("Snippet length: " + new Helper().convertSecondsToTime((int) dTotalSecs) + " seconds");
 
         // Find time as long as possible.
         Pattern timePattern = Pattern.compile("(?<=time=)[-\\d:.]*");
@@ -84,50 +94,33 @@ public class VideoOperations {
             // build Progress in percent and print it
             double sProgress = (Integer.parseInt(sArrayMatchSplit[0]) * 3600 +
                     Integer.parseInt(sArrayMatchSplit[1]) * 60 +
-                    Double.parseDouble(sArrayMatchSplit[2])) / dTotalSecs;
-            if (iProgressOld != (int) (sProgress * 100)) {
-                System.out.println(sMatch);
+                    Double.parseDouble(sArrayMatchSplit[2])) / (dTotalSecs);
+            if (true) { //if (iProgressOld != (int) (sProgress * 100)) {
+                //System.out.println(sMatch);
                 System.out.printf("Progress: %.2f%%%n", sProgress * 100);
                 iProgressOld = (int) (sProgress * 100);
             }
         }
     }
 
-    private void extractSnippets(GlobalVariables globalVariables, String cut, String start, String duration) {
+    private void extractSnippets(GlobalVariables globalVariables, String sCut, String sStart, String sDuration, double dStartSecs, double dTotalSecs) {
 
         // method for extracting the video snippets out of the input video
         String sLine;
-        String sCommand = "ffmpeg -hide_banner -y";
 
         try {
             String sOutputFile = globalVariables.getOutputDir() + FilenameUtils.getName(globalVariables.getMovieFile())
-                    .replace("avi",cut + ".avi");
-            System.out.println("Writing " + cut + " (from " + start + ", duration " + duration + ") to " + sOutputFile);
+                    .replace("avi",sCut + ".avi");
+            System.out.println("Writing " + sCut + " (from " + sStart + ", length " + sDuration + ") to " + sOutputFile);
 
-            if (globalVariables.getExact()) {
-                // exact with encoding
-                System.out.println("Cutting exact with encoding");
-                sCommand = sCommand +
-                        " -i " + globalVariables.getMovieFile() +
-                        " -ss " + start +
-                        " -t " + duration +
-                        " -c:v libx264 -crf 30 ";
-            } else {
-                // input seeking
-                System.out.println("Doing quick-cut by input seeking");
-                sCommand = sCommand +
-                        " -ss " + start +
-                        " -i " + globalVariables.getMovieFile() +
-                        " -t " + duration +
-                        " -c:v copy -c:a copy ";
-            }
-            sCommand = sCommand + sOutputFile;
+            String sCommand = getFfmpegCommand(globalVariables, sCut, sStart, sDuration) + sOutputFile;
+            //System.out.println("Command: " + sCommand);
             Process process = Runtime.getRuntime().exec(sCommand);
 
             // ensure, all ffmpeg processes are killed, when the java application ends.
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {process.destroy();}));
 
-            encodingWatcher(process);
+            encodingWatcher(process, dStartSecs, dTotalSecs);
             // write snippet file name to a file
             // this is required by ffmpeg for later merging to a single video
             new FileOperations().putToSnippetList(globalVariables, "file '" + sOutputFile + "'");
@@ -155,5 +148,64 @@ public class VideoOperations {
         } catch (Exception e) {
             System.out.println(e + "\n" + e.getMessage());
         }
+    }
+
+    private void getKeyFrames(GlobalVariables globalVariables) {
+
+        System.out.println("Getting list of key frames");
+        String sCommand = "ffprobe -loglevel error -select_streams v:0"
+                + " -show_entries packet=pts_time,flags -of csv=print_section=0 "
+                + globalVariables.getMovieFile();
+        try {
+            Process process = Runtime.getRuntime().exec(sCommand);
+            Scanner sc = new Scanner(process.getInputStream());
+            int i=0;
+            while(sc.hasNextLine()){
+                String line = sc.nextLine();
+                if(line.length() > 0 && line.contains("K")) {
+                    //System.out.println(line.replace(",K__",""));
+                    globalVariables.addKeyFrame(String.valueOf(i), Double.parseDouble(line.replace(",K__","")));
+                    i++;
+                } else {
+                    //don't add empty Line
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(e + "\n" + e.getMessage());
+        }
+    }
+
+    private String getFfmpegCommand(GlobalVariables globalVariables, String sCut, String sStart, String sDuration) {
+
+        String sCommand = "ffmpeg -hide_banner -y";
+
+        if (globalVariables.getExact()) {
+            // exact with encoding
+            if (sCut.contains("m")) {
+                System.out.println("Cutting exact in copy mode");
+
+                sCommand = sCommand +
+                        " -ss " + sStart +
+                        " -i " + globalVariables.getMovieFile() +
+                        " -t " + sDuration +
+                        " -c:v copy -c:a copy ";
+            } else {
+                System.out.println("Cutting exact with encoding");
+                sCommand = sCommand +
+                        " -ss " + sStart +
+                        " -i " + globalVariables.getMovieFile() +
+                        " -t " + sDuration +
+                        " -c:v libx264 -crf 30 ";
+            }
+        } else {
+            // input seeking
+            System.out.println("Doing quick-cut by input seeking");
+            sCommand = sCommand +
+                    " -ss " + sStart +
+                    " -i " + globalVariables.getMovieFile() +
+                    " -t " + sDuration +
+                    " -c:v copy -c:a copy ";
+        }
+        return sCommand;
     }
 }

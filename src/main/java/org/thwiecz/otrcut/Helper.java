@@ -7,10 +7,10 @@ import java.nio.charset.StandardCharsets;
 
 public class Helper {
 
-    public String convertSecondsToTime(int iTotalSecs) {
-        int iHours = iTotalSecs / 3600;
-        int iMinutes = (iTotalSecs % 3600) / 60;
-        int iSeconds = iTotalSecs % 60;
+    public String convertSecondsToTime(double iTotalSecs) {
+        int iHours = (int) iTotalSecs / 3600;
+        int iMinutes = (int) ((iTotalSecs % 3600) / 60);
+        double iSeconds = iTotalSecs % 60;
 
         return (iHours < 10 ? "0" : "") + iHours + ":" + (iMinutes < 10 ? "0" : "") + iMinutes + ":"
                 + (iSeconds < 10 ? "0" : "") + iSeconds;
